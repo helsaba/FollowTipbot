@@ -29,17 +29,12 @@ require_once("./include/library/twitteroauth/twitteroauth.php");
 
 // TODO:  Put all of the following in a config file.
 
-/* database parameters */
-$db_host = 'localhost';
-$db_user = 'db_user';
-$db_pw = 'pwd';
-$db = 'db';
-
-
-// connect to mySQL database
-mysql_connect($db_host, $db_user, $db_pw) or die('Could not connect to database');
-mysql_select_db($db) or die('Could not select database');
-
+/*** connect to SQLite database ***/
+try {
+	$dbh = new PDO("sqlite:".__DIR__."/tips.sdb");
+} catch(PDOException $e) {
+	die($e->getMessage());
+}
 
 // TODO:  Get this from config file
 $live = 1;	      // execute the commands
