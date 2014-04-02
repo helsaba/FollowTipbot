@@ -34,6 +34,8 @@ $log->pushHandler(new StreamHandler(__DIR__.'/app.log', Logger::INFO));
 $cfg = Config::load('app.json');
 $twt_cfg = Config::load('twitter-uranther.json');
 
+$debug = $debug;
+
 // TODO: get balance from tipbot with '@tipdoge balance'
 // TODO: calculate tip_amount by dividing balance by number of followers
 $tip_cfg = Config::load('tipdoge-uranther.json');
@@ -41,6 +43,7 @@ $tip_cfg = Config::load('tipdoge-uranther.json');
 /*** connect to SQLite database ***/
 try {
 	$dbh = new PDO("sqlite:".__DIR__."/tips.sdb");
+	$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch(PDOException $e) {
 	die($e->getMessage());
 }
@@ -80,6 +83,7 @@ if ($balance <= 0) {
 	exit;
 } else {
 	echo "Your current balance:  $balance\n";
+	echo "Tip amount: " . get_tip_amount() . "\n";
 }
 
 // TODO:  Tip twitter accounts that you follow.  :)
@@ -87,7 +91,8 @@ $followers = $tweetie->get(
 	'followers/ids',
 	array('screen_name' => $credentials->screen_name)
 );
-if ($cfg->get('debug')) print_r($followers);
+if ($debug) print_r($followers);
+echo "Wow. Much follow: " . count($followers->ids) . " tweeps\n";
 
 // TODO:  For when the user has over 5,000 followers returned, track the last next_cursor value and
 // store it in the db and start from there.
@@ -111,6 +116,7 @@ foreach ($followers->ids as $fid) {
 
 	$sql = "SELECT * FROM tip_".$uid."_followers WHERE uid = ".$credentials->id." AND fid = ".$fid;
 	$results = $dbh->query($sql);
+	if ($debug) print_r($results);
 
 	if (count($results) > 0 && !$cfg->get('tip_again')) {
 		// echo "found record fid=$fid\n";
@@ -176,6 +182,7 @@ foreach ($follower_list as $user_ids) {
 			$balance = $balance - $tip_amount;
 
 			$log->addInfo($tip);
+			if ($debug) echo $tip."\n";
 		} else {
 			$log->addError("You're out of coins!");
 			die("I'M BROKE\n");
@@ -183,6 +190,7 @@ foreach ($follower_list as $user_ids) {
 	}
 
 	$log->addInfo('Balance (after): '.$balance);
+	echo "Balance: $balance\n";
 }
 
 // TODO:  Fill this functions
