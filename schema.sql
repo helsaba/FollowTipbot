@@ -1,18 +1,18 @@
-SQL TABLE FOR THE simple twitter follower tipbot
- 
-FOR supporting multiple users:
-WHEN a USER creates an account ON the website through the twitter CONNECT,
-CREATE a NEW TABLE  `tip_'.$user_id.'_followers`
- 
-IF you don't want multiple users, just use:   `tip_followers`
- 
- 
-MYSQL DUMP for the table:
- 
+-- SQL TABLE FOR THE simple twitter follower tipbot
+--
+-- FOR supporting multiple users:
+-- WHEN a USER creates an account ON the website through the twitter CONNECT,
+-- CREATE a NEW TABLE  `tip_'.$user_id.'_followers`
+--
+-- IF you don't want multiple users, just use:   `tip_followers`
+--
+--
+-- MYSQL DUMP for the table:
+--
 --
 -- Table structure for table `tip_1_followers`
 --
- 
+
 CREATE TABLE IF NOT EXISTS `tip_1_followers` (
  `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
  `uid` int(12) unsigned NOT NULL,
@@ -23,4 +23,4 @@ CREATE TABLE IF NOT EXISTS `tip_1_followers` (
  `amount` decimal(10,0) NOT NULL COMMENT 'how much tipped',
  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 COMMENT='Tip My Followers' ;
+);
