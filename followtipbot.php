@@ -29,7 +29,7 @@ use TwitterOAuth\OAuth;
 use TwitterOAuth\Api;
 
 $log = new Logger('FollowTipbot');
-$log->pushHandler(new StreamHandler('./app.log', Logger::INFO));
+$log->pushHandler(new StreamHandler(__DIR__.'/app.log', Logger::INFO));
 
 $cfg = Config::load('app.json');
 $twt_cfg = Config::load('twitter-uranther.json');
