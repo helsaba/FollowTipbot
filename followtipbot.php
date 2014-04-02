@@ -80,6 +80,7 @@ if ($balance <= 0) {
 	exit;
 } else {
 	echo "Your current balance:  $balance\n";
+	echo "Tip amount: " . get_tip_amount() . "\n";
 }
 
 // TODO:  Tip twitter accounts that you follow.  :)
@@ -88,6 +89,7 @@ $followers = $tweetie->get(
 	array('screen_name' => $credentials->screen_name)
 );
 if ($cfg->get('debug')) print_r($followers);
+echo "Wow. Much follow: " . count($followers->ids) . " tweeps\n";
 
 // TODO:  For when the user has over 5,000 followers returned, track the last next_cursor value and
 // store it in the db and start from there.
@@ -183,6 +185,7 @@ foreach ($follower_list as $user_ids) {
 	}
 
 	$log->addInfo('Balance (after): '.$balance);
+	echo "Balance: $balance\n";
 }
 
 // TODO:  Fill this functions
