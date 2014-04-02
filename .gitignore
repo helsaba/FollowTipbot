@@ -1,5 +1,6 @@
 composer.phar
 vendor/
 twitter-uranther.json
+tipdoge-uranther.json
 app.log
 tips.sdb
