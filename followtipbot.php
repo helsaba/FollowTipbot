@@ -20,14 +20,23 @@
 
 */
 
+require 'vendor/autoload.php';
 
-// TODO:  actually have a config file
-// require_once("./include/config.php");
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+use Noodlehaus\Config;
+use TwitterOAuth\OAuth;
+use TwitterOAuth\Api;
 
-// TODO:  download the twitteroauth library and put correct path
-require_once("./include/library/twitteroauth/twitteroauth.php");
+$log = new Logger('FollowTipbot');
+$log->pushHandler(new StreamHandler('./app.log', Logger::INFO));
 
-// TODO:  Put all of the following in a config file.
+$cfg = Config::load('app.json');
+$twt_cfg = Config::load('twitter-uranther.json');
+
+// TODO: get balance from tipbot with '@tipdoge balance'
+// TODO: calculate tip_amount by dividing balance by number of followers
+$tip_cfg = Config::load('tipdoge-uranther.json');
 
 /*** connect to SQLite database ***/
 try {
@@ -35,85 +44,84 @@ try {
 } catch(PDOException $e) {
 	die($e->getMessage());
 }
+$schema = file_get_contents('./schema.sql');
+$dbh->exec($schema); // create database
 
-// TODO:  Get this from config file
-$live = 1;	      // execute the commands
-// $live = 0;    // just testing.
-
-// TODO:  make $tip_again option entered by the user from the website interface.
-// $tip_again=1;   // tip previously tipped followers
-$tip_again=0;   // do not tip previously tipped followers
-
-// SETUP
-// TODO:  Need Database structure.
-
-// TODO:  Should be able to support other tipbots.
-$tipbot = array ('screen_name' => '@tipdoge', 'currency' => 'doge');
-$tip_type = "dogecoin";
 
 // // // // // // MASTER TOKENS   // // // // // // // // 
 // TODO:  Get the uid from the logged in user.  Spoofing for CLI.
-$uid=1;
+$uid = 1;
 
 // TODO:  get the user's access tokey/secret from the database when user
 // first connected their twitter account.
-$access_token = 'USER ACCESS TOKEN';
-$access_token_secret = 'USER ACCESS TOKEN SECRET';
-
+//$access_token = 'USER ACCESS TOKEN';
+//$access_token_secret = 'USER ACCESS TOKEN SECRET';
 
 // // // // // // MASTER KEYS     // // // // // // // // 
 // TODO:  Get this from the database
-$consumer_key = 'APP CONSUMER KEY';
-$consumer_secret = 'APP CONSUMER SECRET';
+//$consumer_key = 'APP CONSUMER KEY';
+//$consumer_secret = 'APP CONSUMER SECRET';
 
-// END CONFIG FILE
-
-
-$tweetie = new TwitterOAuth($consumer_key, $consumer_secret, $access_token, $access_token_secret);
-
-// Send an API request to verify credentials
+// Connect to Twitter
+$tweetie = new Api(
+				$twt_cfg->get('consumer_key'),
+				$twt_cfg->get('consumer_secret'),
+				$twt_cfg->get('access_token'),
+				$twt_cfg->get('access_token_secret')
+			);
+// Verify creds
 $credentials = $tweetie->get("account/verify_credentials");
-
 echo "Connected as @" . $credentials->screen_name . "\n";
 
-$balance=coin_balance($tipbot[currency]);
-if ($balance<=0) {
-	echo "You have 0 balance\n";
+$balance = coin_balance($cfg->get('tipbot.currency'));
+if ($balance <= 0) {
+	echo "ZERO BALANCE\n";
+	echo "QUITTING...\n";
 	exit;
-}else{
+} else {
 	echo "Your current balance:  $balance\n";
 }
 
 // TODO:  Tip twitter accounts that you follow.  :)
-$followers=$tweetie->get('followers/ids', array('screen_name' => $credentials->screen_name));
-// print_r($followers);
+$followers = $tweetie->get(
+	'followers/ids',
+	array('screen_name' => $credentials->screen_name)
+);
+if ($cfg->get('debug')) print_r($followers);
 
 // TODO:  For when the user has over 5,000 followers returned, track the last next_cursor value and
 // store it in the db and start from there.
 // $followers=$tweetie->get('followers/ids', array('screen_name' => $credentials->screen_name, 'cursor'=> $followers->next_cursor));
 // print_r($followers);
 
-$list = array ();
+$follower_list = array ();
 
 foreach ($followers->ids as $fid) {
+	if (!$fid) break;
+
 	// TODO:  Make this more efficient
-	if ($tip_again) {
+	if ($cfg->get('tip_again')) {
 	}
+
 	// TODO:  option to select a follower(s) at random to randomly tip.
+	if ($cfg->get('random')) {
+		$log->addInfo('Random tipping enabled.');
+	}
 
-	$sql = "SELECT * FROM tip_".$uid."_followers where uid=$credentials->id and fid=$fid LIMIT 1";
+	$sql = "SELECT * FROM tip_".$uid."_followers where uid = ? and fid = ? LIMIT 1";
+	$sth = $dbh->prepare($sql);
+	print_r(array($credentials->id, $fid));
+	$sth->execute(array($credentials->id, $fid));
+	$results = $sth->fetchAll();
 
-	$result = mysql_query($sql);
-	$numrows = mysql_num_rows($result);
-
-	if (($numrows!=0) and (!$tip_again)){
+	if (count($results) > 0 && !$tip_again) {
 		// echo "found record fid=$fid\n";
 		// print_r($row);
 
 		// TODO:  check if they've been tipped and how much.
 		// $row = mysql_fetch_row($result);
 		// print_r($row);
-	}else{
+	} else {
 		// Case to tip
 		// echo "NOT found record fid=$fid\n";
 
@@ -122,54 +130,91 @@ foreach ($followers->ids as $fid) {
 
 		$list_num = intval ($count / 100);
 
-		if (!strlen($list[$list_num])) { $list[$list_num] = "$fid"; }
-		else { $list[$list_num] .= ",$fid"; }
+		if (strlen($list[$list_num]) > 0) {
+			$follower_list[$list_num] = "$fid";
+		} else {
+			$follower_list[$list_num] .= ",$fid"; // append follower ID
+		}
 	}
 }
 
 
-foreach ($list as $userids) {
-	$results=$tweetie->get('users/lookup', array('user_id' => $userids));
+foreach ($follower_list as $user_ids) {
+	$results = $tweetie->get('users/lookup', array('user_id' => $user_ids));
+
+	$log->addInfo('Balance (before): '.$balance);
 
 	foreach ($results as $tweep) {
 
 		if ($balance) {
 			// Post our tip to our tipbot
-			$tipbot = array ('screen_name' => '@tipdoge', 'currency' => 'doge');
-			$tip_amount=get_tip_amount();
+			$tip_amount = get_tip_amount();
 			$msg = get_donor_msg();
-			$tip = $tipbot[screen_name]." tip @".$tweep->screen_name." ".$tip_amount. " ".$tipbot[currency]." ".$msg;
+			$tip = sprintf("%s tip @%s %s %s %s",
+				$cfg->get('tipbot.screen_name')
+				, $tweep->screen_name
+				, $tip_amount
+				, $cfg->get('tipbot.currency')
+				, $msg
+			);
 
 			// Let's tip this puppy!
-			if ($live) {
+			if ($cfg->get('live')) {
 				// TODO:  abstract the tipping into an overloaded function
 				$tweetie->post('statuses/update', array('status' => $tip));
 
 				// TODO:  add the amount to the total tip amount, and track number of tips per person.
 				// NOTE:  confirmed will have to be checked later when we get the notification from the tipbot
 
-				$sql = "INSERT INTO  tip_".$uid."_followers set uid=$credentials->id, tip_type=$tip_type, fid=$tweep->id, screen_name=$tweep->screen_name, tipped=1, amount=$tip_amount";
-
-				mysql_query($sql);
+				$sql = "INSERT INTO  tip_".$uid."_followers SET
+					uid = ?,
+					tip_type = ?,
+					fid = ?,
+					screen_name = ?,
+					tipped = 1,
+					amount = ?";
+				$sth = $dbh->prepare($sql);
+				$sth->execute(array(
+					$credentials->id,
+					$cfg->get('tipbot.tip_type'),
+					$tweep->id,
+					$tweep->screen_name,
+					$tip_amount)
+				);
 			}
-			$balance-=$tip_amount;
-		}else{
-			// TODO:       exit ??
-			echo "You're out of coins!\n";
+			$balance = $balance - $tip_amount;
+
+			$log->addInfo($tip);
+		} else {
+			$log->addError("You're out of coins!");
+			die("I'M BROKE\n");
 		}
 	}
+
+	$log->addInfo('Balance (after): '.$balance);
 }
 
 // TODO:  Fill this functions
 // TODO:  Make random amounts settings
-function get_tip_amount(){
-	return 10;
+function get_tip_amount() {
+	global $tip_cfg;
+	return $tip_cfg->get('tip_amount');
 }
 
 // TODO:  Figure out how much coins left
 // Spoofing for now.
 function coin_balance() {
-	return 1000;
+	global $tip_cfg;
+	return $tip_cfg->get('balance');
+}
+
+function get_donor_msg () {
+	$msg_cfg = Config::load('messages.json');
+
+	// TODO:  Pick a random message that the user inputs and stored in the database
+	$messages = $msg_cfg->get('messages');
+
+	return $messages[0];
 }
 
 /*  More TODO:
@@ -177,12 +222,3 @@ function coin_balance() {
 	@FollowTipbot <command> <tipbot> <amount> <currency>
 	@FollowTipbot <add_msg> <msg>	   // Add to the random messages that gets sent out after the tipping syntax
 */
-
-function get_donor_msg () {
-	global $tipbot;
-	global $donor;
-
-// TODO:  Pick a random message that the user inputs and stored in the database
-	$msg = "Doge tips for all my new followers! // TipItForward // AllUNeedIsDoge";
-	return $msg;
-}
