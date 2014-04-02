@@ -95,6 +95,7 @@ if ($cfg->get('debug')) print_r($followers);
 // print_r($followers);
 
 $follower_list = array ();
+$count = 0;
 
 foreach ($followers->ids as $fid) {
 	if (!$fid) break;
@@ -108,13 +109,10 @@ foreach ($followers->ids as $fid) {
 		$log->addInfo('Random tipping enabled.');
 	}
 
-	$sql = "SELECT * FROM tip_".$uid."_followers where uid = ? and fid = ? LIMIT 1";
-	$sth = $dbh->prepare($sql);
-	print_r(array($credentials->id, $fid));
-	$sth->execute(array($credentials->id, $fid));
-	$results = $sth->fetchAll();
+	$sql = "SELECT * FROM tip_".$uid."_followers WHERE uid = ".$credentials->id." AND fid = ".$fid;
+	$results = $dbh->query($sql);
 
-	if (count($results) > 0 && !$tip_again) {
+	if (count($results) > 0 && !$cfg->get('tip_again')) {
 		// echo "found record fid=$fid\n";
 		// print_r($row);
 
@@ -130,10 +128,10 @@ foreach ($followers->ids as $fid) {
 
 		$list_num = intval ($count / 100);
 
-		if (strlen($list[$list_num]) > 0) {
-			$follower_list[$list_num] = "$fid";
-		} else {
+		if (isset($follower_list[$list_num])) {
 			$follower_list[$list_num] .= ",$fid"; // append follower ID
+		} else {
+			$follower_list[$list_num] = "$fid";
 		}
 	}
 }
@@ -167,20 +165,13 @@ foreach ($follower_list as $user_ids) {
 				// NOTE:  confirmed will have to be checked later when we get the notification from the tipbot
 
 				$sql = "INSERT INTO  tip_".$uid."_followers SET
-					uid = ?,
-					tip_type = ?,
-					fid = ?,
-					screen_name = ?,
+					uid = $credentials->id,
+					tip_type = ".$cfg->get('tipbot.tip_type').",
+					fid = $tweep->id,
+					screen_name = $tweep->screen_name,
 					tipped = 1,
-					amount = ?";
-				$sth = $dbh->prepare($sql);
-				$sth->execute(array(
-					$credentials->id,
-					$cfg->get('tipbot.tip_type'),
-					$tweep->id,
-					$tweep->screen_name,
-					$tip_amount)
-				);
+					amount = $tip_amount";
+				$dbh->query($sql);
 			}
 			$balance = $balance - $tip_amount;
 
