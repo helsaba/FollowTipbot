@@ -3,7 +3,7 @@
         "This file locks the dependencies of your project to a known state",
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
     ],
-    "hash": "12d2397d05fc86f293ae8a307e5d4f16",
+    "hash": "959cd6d3d6da838ae1204de1310062ad",
     "packages": [
         {
             "name": "monolog/monolog",
@@ -72,6 +72,52 @@
                 "psr-3"
             ],
             "time": "2014-03-23 19:50:26"
+        },
+        {
+            "name": "noodlehaus/config",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/noodlehaus/config.git",
+                "reference": "f93426c17874cd7297f305f3fb95739900835268"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/noodlehaus/config/zipball/f93426c17874cd7297f305f3fb95739900835268",
+                "reference": "f93426c17874cd7297f305f3fb95739900835268",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">= 5.3.0"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/config.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jesus A. Domingo",
+                    "homepage": "http://noodlehaus.github.io/",
+                    "role": "Developer"
+                }
+            ],
+            "description": "configuration file loader that supports json, ini, or php hashes",
+            "homepage": "http://noodlehaus.github.io/config/",
+            "keywords": [
+                "config",
+                "configuration",
+                "ini",
+                "json",
+                "microphp",
+                "unframework"
+            ],
+            "time": "2014-03-25 17:36:29"
         },
         {
             "name": "psr/log",
@@ -154,9 +200,9 @@
 
     ],
     "minimum-stability": "stable",
-    "stability-flags": [
-
-    ],
+    "stability-flags": {
+        "noodlehaus/config": 20
+    },
     "platform": [
 
     ],

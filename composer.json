@@ -1,6 +1,7 @@
 {
 	"require": {
 		"monolog/monolog": "1.8.*",
-		"ruudk/twitter-oauth": "1.*"
+		"ruudk/twitter-oauth": "1.*",
+		"noodlehaus/config": "dev-master"
 	}
 }
