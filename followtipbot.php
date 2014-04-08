@@ -48,7 +48,7 @@ try {
 	die($e->getMessage());
 }
 $schema = file_get_contents('./schema.sql');
-$dbh->exec($schema); // create database
+$dbh->exec($schema); // create database if not exists (SQLite 3.3+)
 
 
 // // // // // // MASTER TOKENS   // // // // // // // // 

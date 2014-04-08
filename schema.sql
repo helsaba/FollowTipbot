@@ -13,7 +13,7 @@
 -- Table structure for table tip_1_followers
 --
 
-CREATE TABLE tip_followers (
+CREATE TABLE IF NOT EXISTS tip_followers (
  id INTEGER PRIMARY KEY ASC,
  uid INTEGER NULL,
  fid INTEGER,
