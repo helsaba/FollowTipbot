@@ -175,6 +175,7 @@ foreach ($follower_list as $user_ids) {
 			if ($cfg->get('live')) {
 				// TODO:  abstract the tipping into an overloaded function
 				$tweetie->post('statuses/update', array('status' => $tip));
+				sleep(5);
 
 				// TODO:  add the amount to the total tip amount, and track number of tips per person.
 				// NOTE:  confirmed will have to be checked later when we get the notification from the tipbot
@@ -192,7 +193,6 @@ foreach ($follower_list as $user_ids) {
 						$tweep->screen_name,
 						$tip_amount
 					));
-					break;
 				} catch (PDOException $e) {
 					$log->addError($e);
 					die($e);
