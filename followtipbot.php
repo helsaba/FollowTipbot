@@ -34,7 +34,7 @@ $log->pushHandler(new StreamHandler(__DIR__.'/app.log', Logger::INFO));
 $cfg = Config::load('app.json');
 $twt_cfg = Config::load('twitter-uranther.json');
 
-$debug = $debug;
+$debug = $cfg->get('debug');
 
 // TODO: get balance from tipbot with '@tipdoge balance'
 // TODO: calculate tip_amount by dividing balance by number of followers
@@ -53,7 +53,7 @@ $dbh->exec($schema); // create database
 
 // // // // // // MASTER TOKENS   // // // // // // // // 
 // TODO:  Get the uid from the logged in user.  Spoofing for CLI.
-$uid = 1;
+//$uid = 1;
 
 // TODO:  get the user's access tokey/secret from the database when user
 // first connected their twitter account.
@@ -114,10 +114,19 @@ foreach ($followers->ids as $fid) {
 		$log->addInfo('Random tipping enabled.');
 	}
 
-	$sql = "SELECT * FROM tip_".$uid."_followers WHERE uid = ".$credentials->id." AND fid = ".$fid;
-	$results = $dbh->query($sql);
-	if ($debug) print_r($results);
+	// Find all the tips for this user and follower
+	try {
+		$sql = "SELECT * FROM tip_followers WHERE uid = ? AND fid = ?";
+		$sth = $dbh->prepare($sql);
+		$sth->execute(array($credentials->id, $fid));
+		$results = $sth->fetchAll();
+		if ($debug) print_r($results);
+	} catch (PDOException $e) {
+		$log->addError($e);
+		die($e);
+	}
 
+	// Tip those followers again?
 	if (count($results) > 0 && !$cfg->get('tip_again')) {
 		// echo "found record fid=$fid\n";
 		// print_r($row);
@@ -170,14 +179,24 @@ foreach ($follower_list as $user_ids) {
 				// TODO:  add the amount to the total tip amount, and track number of tips per person.
 				// NOTE:  confirmed will have to be checked later when we get the notification from the tipbot
 
-				$sql = "INSERT INTO  tip_".$uid."_followers SET
-					uid = $credentials->id,
-					tip_type = ".$cfg->get('tipbot.tip_type').",
-					fid = $tweep->id,
-					screen_name = $tweep->screen_name,
-					tipped = 1,
-					amount = $tip_amount";
-				$dbh->query($sql);
+				try {
+					$sql = "INSERT INTO  tip_followers
+						(uid, fid, tip_type, screen_name, tipped, amount)
+						VALUES 
+						(?, ?, ?, ?, 1, ?)";
+					$sth = $dbh->prepare($sql);
+					$sth->execute(array(
+						$credentials->id,
+						$tweep->id,
+						$cfg->get('tipbot.tip_type'),
+						$tweep->screen_name,
+						$tip_amount
+					));
+					break;
+				} catch (PDOException $e) {
+					$log->addError($e);
+					die($e);
+				}
 			}
 			$balance = $balance - $tip_amount;
 
