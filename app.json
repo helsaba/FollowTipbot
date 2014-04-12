@@ -1,11 +1,12 @@
 {
-	'debug': true,
+	'debug': false,
 	'live': false,
-	'tip_again': true,
+	'tip_again': false,
 	'tipbot': {
 		'screen_name': '@tipdoge',
-		'currency': 'doge',
+		'currency': '#dogecoin',
 		'tip_type': 'dogecoin'
 	},
-	'random': false
+	'random': false,
+	'delay': 60,
 }
