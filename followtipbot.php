@@ -81,10 +81,8 @@ if ($balance <= 0) {
 	echo "ZERO BALANCE\n";
 	echo "QUITTING...\n";
 	exit;
-} else {
-	echo "Your current balance:  $balance\n";
-	echo "Tip amount: " . get_tip_amount() . "\n";
 }
+echo "Balance:  $balance\n";
 
 // TODO:  Tip twitter accounts that you follow.  :)
 $followers = $tweetie->get(
