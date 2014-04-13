@@ -90,7 +90,16 @@ $followers = $tweetie->get(
 	array('screen_name' => $credentials->screen_name)
 );
 if ($debug) print_r($followers);
-echo "Wow. Much follow: " . count($followers->ids) . " tweeps\n";
+
+if (is_array($followers->ids)) {
+	$num_followers = count($followers->ids);
+} else {
+	$log->addError('could not get followers!');
+	$log->addError('EXITING!');
+	die;
+}
+
+//echo "Wow. Much follow: " . $num_followers . " tweeps\n";
 
 // TODO:  For when the user has over 5,000 followers returned, track the last next_cursor value and
 // store it in the db and start from there.
@@ -149,6 +158,10 @@ foreach ($followers->ids as $fid) {
 	}
 }
 
+echo "Tipping " . $count ." of ". $num_followers ." tweeps.\n";
+
+$tip_amount = get_tip_amount($count);
+echo "Tip amount: " . $tip_amount ." ". $cfg->get('tipbot.currency') ."\n";
 
 foreach ($follower_list as $user_ids) {
 	$results = $tweetie->get('users/lookup', array('user_id' => $user_ids));
@@ -159,7 +172,6 @@ foreach ($follower_list as $user_ids) {
 
 		if ($balance) {
 			// Post our tip to our tipbot
-			$tip_amount = get_tip_amount();
 			$msg = get_donor_msg();
 			$tip = sprintf("%s tip @%s %s %s %s",
 				$cfg->get('tipbot.screen_name')
@@ -212,9 +224,23 @@ foreach ($follower_list as $user_ids) {
 
 // TODO:  Fill this functions
 // TODO:  Make random amounts settings
-function get_tip_amount() {
-	global $tip_cfg;
-	return $tip_cfg->get('tip_amount');
+function get_tip_amount($num_followers) {
+	global $tip_cfg, $log;
+	$amt = 0;
+
+	if ($tip_cfg->get('distribution.even')) {
+		echo "Distributing all DOGE to followers evenly\n";
+		$log->addInfo('Distributing all DOGE to followers evenly');
+		$amt = $tip_cfg->get('balance') / $num_followers;
+	}
+
+	if ($tip_cfg->get('distribution.rounded')) {
+		echo "Rounding tip amount\n";
+		$log->addInfo('Rounding tip amount');
+		$amt = floor($amt);
+	}
+
+	return $amt;
 }
 
 // TODO:  Figure out how much coins left
