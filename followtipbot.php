@@ -108,13 +108,10 @@ if (is_array($followers->ids)) {
 
 $follower_list = array ();
 $count = 0;
+$tip_again = $cfg->get('tip_again');
 
 foreach ($followers->ids as $fid) {
 	if (!$fid) break;
-
-	// TODO:  Make this more efficient
-	if ($cfg->get('tip_again')) {
-	}
 
 	// TODO:  option to select a follower(s) at random to randomly tip.
 	if ($cfg->get('random')) {
@@ -123,27 +120,19 @@ foreach ($followers->ids as $fid) {
 
 	// Find all the tips for this user and follower
 	try {
-		$sql = "SELECT * FROM tip_followers WHERE uid = ? AND fid = ?";
+		$sql = "SELECT COUNT(*) as c FROM tip_followers WHERE uid = ? AND fid = ?";
 		$sth = $dbh->prepare($sql);
 		$sth->execute(array($credentials->id, $fid));
-		$results = $sth->fetchAll();
-		if ($debug) print_r($results);
+		$tipped_count = $sth->fetch();
+		$tipped_count = (int) $tipped_count['c'];
+		if ($debug) $log->addDebug($results);
 	} catch (PDOException $e) {
 		$log->addError($e);
 		die($e);
 	}
-
+	
 	// Tip those followers again?
-	if (count($results) > 0 && !$cfg->get('tip_again')) {
-		// echo "found record fid=$fid\n";
-		// print_r($row);
-
-		// TODO:  check if they've been tipped and how much.
-		// $row = mysql_fetch_row($result);
-		// print_r($row);
-	} else {
-		// Case to tip
-		// echo "NOT found record fid=$fid\n";
+	if ($tip_again || (!$tip_again && $tipped_count == 0)) { // only tip if no previous tips
 
 		// Figure out which list to add to, up to 100 per list as per twitter's limit
 		$count++;
