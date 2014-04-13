@@ -174,7 +174,7 @@ foreach ($follower_list as $user_ids) {
 			if ($cfg->get('live')) {
 				// TODO:  abstract the tipping into an overloaded function
 				$tweetie->post('statuses/update', array('status' => $tip));
-				sleep(120); // sleep for 2 minutos
+				sleep($cfg->get('delay')); // sleep for 2 minutos
 
 				// TODO:  add the amount to the total tip amount, and track number of tips per person.
 				// NOTE:  confirmed will have to be checked later when we get the notification from the tipbot
